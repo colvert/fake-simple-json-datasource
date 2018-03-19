@@ -5,18 +5,18 @@ var app = express();
 
 app.use(bodyParser.json());
 
-var timeserie = require('./series');
-
+// var timeserie = require('./series_pod4-orange-heat2');
+var timeserie = []
 var now = Date.now();
 
-for (var i = timeserie.length -1; i >= 0; i--) {
-  var series = timeserie[i];
-  var decreaser = 0;
-  for (var y = series.datapoints.length -1; y >= 0; y--) {
-    series.datapoints[y][1] = Math.round((now - decreaser) /1000) * 1000;
-    decreaser += 50000;
-  }
-}
+// for (var i = timeserie.length -1; i >= 0; i--) {
+//   var series = timeserie[i];
+//   var decreaser = 0;
+//   for (var y = series.datapoints.length -1; y >= 0; y--) {
+//      series.datapoints[y][1] = Math.round((now - decreaser) /1000) * 1000;
+//      decreaser += 50000;
+//   }
+// }
 
 var annotation = {
   name : "annotation name",
@@ -31,36 +31,74 @@ var annotations = [
   { annotation: annotation, "title": "When is the next ", "time": 1450754160000, text: "teeext", tags: "taaags" }
 ];
 
-var now = Date.now();
-var decreaser = 0;
-for (var i = 0;i < annotations.length; i++) {
-  var anon = annotations[i];
+// var now = Date.now();
+// var decreaser = 0;
+// for (var i = 0;i < annotations.length; i++) {
+//   var anon = annotations[i];
+//
+//   anon.time = (now - decreaser);
+//   decreaser += 1000000
+// }
 
-  anon.time = (now - decreaser);
-  decreaser += 1000000
-}
 
 var table =
   {
-    columns: [{text: 'Time', type: 'time'}, {text: 'Country', type: 'string'}, {text: 'Number', type: 'number'}],
-    values: [
-      [ 1234567, 'SE', 123 ],
-      [ 1234567, 'DE', 231 ],
-      [ 1234567, 'US', 321 ],
-    ]
+    columns: [{text: 'Time', type: 'time'}, {text: 'POD', type: 'string'}, {text: 'Score', type: 'number'}],
+    rows: [],
+    type: "table"
   };
-  
+
+
 function setCORSHeaders(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST");
-  res.setHeader("Access-Control-Allow-Headers", "accept, content-type");  
+  res.setHeader("Access-Control-Allow-Headers", "accept, content-type");
 }
 
+function updateTable() {
+  var fs = require('fs');
+  var parse = require('csv-parse');
+
+  var csvData=[];
+    fs.createReadStream('./scores_pod.csv')
+        .pipe(parse({delimiter: ','}))
+        .on('data', function(csvrow) {
+            // console.log(csvrow);
+            //do something with csvrow
+            csvData.push(csvrow);
+        })
+        .on('end',function() {
+          //do something wiht csvData
+          console.log(csvData);
+          table =
+            {
+              columns: [{text: 'Time', type: 'time'}, {text: 'POD', type: 'string'}, {text: 'Score', type: 'number'}],
+              rows: csvData,
+              type: "table"
+            };
+        });
+}
+
+function updateTimeSeries() {
+  // timeserie = require('./series_pod4-orange-heat2');
+  console.log("Update series....")
+  // console.log(timeserie)
+  timeserie = JSON.parse(require('fs').readFileSync('./series_pod4-orange-heat2.json', 'utf8'));
+
+  var now = Date.now();
+  //console.log(timeseries)
+  console.log(now)
+
+  for (var i = timeserie.length -1; i >= 0; i--) {
+    var series = timeserie[i];
+  }
+
+}
 
 var now = Date.now();
 var decreaser = 0;
-for (var i = 0;i < table.values.length; i++) {
-  var anon = table.values[i];
+for (var i = 0;i < table.rows.length; i++) {
+  var anon = table.rows[i];
 
   anon[0] = (now - decreaser);
   decreaser += 1000000
@@ -94,6 +132,8 @@ app.all('/annotations', function(req, res) {
 
 app.all('/query', function(req, res){
   setCORSHeaders(res);
+  updateTable()
+  updateTimeSeries()
   console.log(req.url);
   console.log(req.body);
 
